@@ -37,32 +37,15 @@ public class Reporter {
         int leftLength = excaLength - message.length() / 2;
         int rightLength = excaLength - (message.length() - message.length() / 2);
 
-        String line = "Grader" + marker.repeat(leftLength) +"    "+ message +"    "+marker.repeat(rightLength) + "Grader\n";
+        String line = "Grader" + marker.repeat(leftLength) +"    "+ message +"    "+marker.repeat(rightLength) + "Grader";
 
-        try {
-            reportWriter.write(line);
-            reportWriter.flush();
-            if (verbose){
-                System.out.println(line);
-            }
-        } catch (IOException e) {
-            System.out.println("Report writer cannot write. Grader's fault.");
-            e.printStackTrace();
-            System.exit(-88);
+        writeln(line);
+        if (verbose){
+            System.out.println(line);
         }
     }
     public void writeln(String line) {
-        try {
-            reportWriter.write(studentID + "|||" + line + "\n");
-            reportWriter.flush();
-            if (verbose){
-                System.out.println(line);
-            }
-        } catch (IOException e) {
-            System.out.println("Report writer cannot write. Grader's fault.");
-            e.printStackTrace();
-            System.exit(-88);
-        }
+        write(line+"\n");
     }
 
     public void write(String line) {
@@ -70,7 +53,7 @@ public class Reporter {
             reportWriter.write(studentID + "|||" + line);
             reportWriter.flush();
             if (verbose){
-                System.out.println(line);
+                System.out.print(line);
             }
         } catch (IOException e) {
             System.out.println("Report writer cannot write. Grader's fault.");
@@ -91,9 +74,9 @@ public class Reporter {
 
     public void reportException(Exception e, String graderMessage) {
         System.out.println(graderMessage);
-        write(graderMessage);
+        writeln(graderMessage);
         e.printStackTrace();
-        write(ExceptionUtils.getStackTrace(e));
+        writeln(ExceptionUtils.getStackTrace(e));
     }
 
     public void writeOriginalCode(File studentTempFile) {
@@ -109,6 +92,7 @@ public class Reporter {
             }
             divider("FINISHED");
             divider(studentID);
+            studentReader.close();
         } catch (FileNotFoundException e) {
             reportException(e, "Cannot write original code");
             System.exit(-89);

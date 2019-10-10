@@ -4,6 +4,7 @@ import java.util.Scanner;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.ObjectUtils;
 
 public class Grader {
     private final boolean auto;
@@ -187,8 +188,19 @@ public class Grader {
     private void gradeStudent(File currentFile){
         File tempFile = null;
         int mistakes=0;
-        // copy files to temp to compile and run
+
         try {
+            // clear temp directory
+//            boolean isFileUnlocked = false;
+//            try {
+//                org.apache.commons.io.FileUtils.touch(tempFile);
+//                isFileUnlocked = true;
+//            } catch (IOException| NullPointerException e) {
+//                isFileUnlocked = false;
+//            }
+            FileUtils.cleanDirectory(tempPathFile);
+//            FileUtils.forceMkdir(tempPathFile);
+            // copy files to temp to compile and run
             tempFile = copySubmissionTemp(currentFile);
         } catch (IOException e) {
             System.out.println("Grader cannot create temp file. Grader's fault");
@@ -222,7 +234,7 @@ public class Grader {
         }
         try {
             gradeCompilation(compilation, reporter);
-            compilation.destroy();
+
         } catch (IOException e) {
             mistakes=999;
             reporter.write("Student "+studentID+" has IO exception. Need regrading");
@@ -232,6 +244,7 @@ public class Grader {
             reporter.write("Student "+studentID+" program is interrupted. Why?");
             e.printStackTrace();
         }
+        compilation.destroy();
         reporter.newline(3);
         //////////////////////// Main program /////////////////////////
         // start the process
@@ -269,6 +282,9 @@ public class Grader {
         // Get a copy of the original code
         reporter.writeOriginalCode(tempFile);
         reporter.close();
+        boolean deleted=tempFile.delete();
+//        File here = new File(".");
+//        System.out.println(here.getAbsolutePath());
 
         // if no mistakes are made, change file name
         if (mistakes == 0) {
@@ -434,8 +450,8 @@ public class Grader {
             while (!done){
                 File originalFile = manualGrade.get(i);
                 String studentID = parseStudentID(originalFile);
-                reporter.write(studentID);
-                reporter.write(originalFile.getName());
+                reporter.writeln(studentID);
+                reporter.writeln(originalFile.getName());
 
                 // compilation
                 try {

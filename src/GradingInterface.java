@@ -47,6 +47,20 @@ public class GradingInterface {
         RequiredInputOutput rio4 = new RequiredInputOutput(inputs4, getMethod("judgment4"));
         grader.addRunRequirement(rio4);
 
+        ArrayList<String> inputs5 = new ArrayList<>();
+        inputs5.add("5\n");
+        inputs5.add("5\n");
+        inputs5.add("5\n");
+        RequiredInputOutput rio5 = new RequiredInputOutput(inputs5, getMethod("judgment5"));
+        grader.addRunRequirement(rio5);
+
+        ArrayList<String> inputs6 = new ArrayList<>();
+        inputs6.add("-4\n");
+        inputs6.add("-2\n");
+        inputs6.add("-3\n");
+        RequiredInputOutput rio6 = new RequiredInputOutput(inputs6, getMethod("judgment6"));
+        grader.addRunRequirement(rio6);
+
         grader.startGrading();
     }
 
@@ -135,6 +149,42 @@ public class GradingInterface {
         mistakes += (outputs.get(outputStartsAt+1).contains("6000")? 0:1);
         mistakes += (outputs.get(outputStartsAt+2).contains("3")? 0:1);
         mistakes += (outputs.get(outputStartsAt+3).contains("-1000")? 0:1);
+
+        return mistakes;
+    }
+
+    public static int judgment5(ArrayList<String> outputs, ArrayList<Integer> inputMarkers){
+        int mistakes=0;
+        int outputStartsAt=inputMarkers.get(inputMarkers.size()-1);
+        boolean hasEnter=false;
+        for (String s:outputs.subList(0, outputStartsAt+1)){
+            if (s.toLowerCase().contains("enter")){
+                hasEnter=true;
+            }
+        }
+        mistakes += hasEnter? 0: 1;
+        mistakes += (outputs.get(outputStartsAt+0).contains("15")? 0:1);
+        mistakes += (outputs.get(outputStartsAt+1).contains("125")? 0:1);
+        mistakes += (outputs.get(outputStartsAt+2).contains("5")? 0:1);
+        mistakes += (outputs.get(outputStartsAt+3).contains("5")? 0:1);
+
+        return mistakes;
+    }
+
+    public static int judgment6(ArrayList<String> outputs, ArrayList<Integer> inputMarkers){
+        int mistakes=0;
+        int outputStartsAt=inputMarkers.get(inputMarkers.size()-1);
+        boolean hasEnter=false;
+        for (String s:outputs.subList(0, outputStartsAt+1)){
+            if (s.toLowerCase().contains("enter")){
+                hasEnter=true;
+            }
+        }
+        mistakes += hasEnter? 0: 1;
+        mistakes += (outputs.get(outputStartsAt+0).contains("-9")? 0:1);
+        mistakes += (outputs.get(outputStartsAt+1).contains("-24")? 0:1);
+        mistakes += (outputs.get(outputStartsAt+2).contains("-2")? 0:1);
+        mistakes += (outputs.get(outputStartsAt+3).contains("-4")? 0:1);
 
         return mistakes;
     }
