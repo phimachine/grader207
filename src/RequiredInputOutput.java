@@ -19,16 +19,31 @@ public class RequiredInputOutput {
         this.judgment=judgment;
     }
 
-    public void injectCustomInput(OutputStream stream, Reporter reporter) {
+    public void injectCustomInput(Process pro, OutputStream stdin, BufferedReader stdout, Reporter reporter,
+                                  ArrayList<String> outputs, ArrayList<Integer> inputMarkers) {
         try {
             if (customInputs != null) {
-                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stream));
+                BufferedWriter stdinWriter = new BufferedWriter(new OutputStreamWriter(stdin));
                 for (String input : customInputs) {
-                    writer.write(input);
+                    stdinWriter.write(input);
+                    inputMarkers.add(outputs.size());
                     reporter.write(input);
+                    try {
+                        String line;
+                        if (stdout.ready()){
+                            while ((line = stdout.readLine()) != null) {
+                                reporter.writeln(line);
+                                outputs.add(line);
+                            }
+                        }
+                    } catch (IOException e) {
+                        reporter.reportException(e, "Grader cannot access stdout of the student program.");
+                        e.printStackTrace();
+                        throw e;
+                    }
                 }
                 try {
-                    writer.close();
+                    stdinWriter.close();
                 } catch (IOException e){
                     reporter.divider("Program closed itself");
                 }
@@ -37,22 +52,28 @@ public class RequiredInputOutput {
             System.out.println("Report writer cannot write. Grader's fault.");
             e.printStackTrace();
             System.exit(-88);
+//        } catch(InterruptedException e){
+//            System.out.println("Report writer cannot write. Grader's fault.");
+//            e.printStackTrace();
+//            System.exit(-88);
         }
     }
 
-    public int judge(ArrayList<String> outputs, Reporter currentReporter) {
+    public int judge(ArrayList<String> outputs, ArrayList<Integer> inputMarkers, Reporter currentReporter) {
+        // outputs are just outputs
+        // inputMarkers, for example, [1,4,6] means there are one output before the first input, 4 outputs before the second...
         try{
-            int mistakes=(int) judgment.invoke(GradingInterface.class, outputs);
+            int mistakes=(int) judgment.invoke(GradingInterface.class, outputs, inputMarkers);
             if (mistakes!=0){
                 System.out.println("here");
             }
             currentReporter.divider("MISTAKES",""+mistakes);
             return mistakes;
         } catch (IllegalAccessException e) {
-            currentReporter.reportException(e, "Grader's judgment function experienced error");
+            currentReporter.reportException(e, "The judgment function is not defined correctly.");
             return 999;
         } catch (InvocationTargetException e) {
-            currentReporter.reportException(e, "Grader's judgment function experienced error");
+            currentReporter.reportException(e, "The judgment function is not defined correctly.");
             return 999;
         }
     }

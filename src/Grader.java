@@ -34,6 +34,10 @@ public class Grader {
 
     public Grader(boolean auto, String requireClassName, String submissionsPathString,
                   String tempPathString, String reportPathString, boolean verbose)  {
+        System.out.println("Grader help you construct test cases, find compilation problem, etc..");
+        System.out.println("But it cannot do everything: e.g. give feedback on coding styles or redundant logic, etc..");
+        System.out.println("It's necessary to check for all programs that do not have full score");
+
         this.auto = auto;
         this.requireClassName = requireClassName;
         this.submissionsPathString = submissionsPathString;
@@ -58,7 +62,6 @@ public class Grader {
 
     public static void main(String[] args) throws IOException {
         GradingInterface g = new GradingInterface();
-        g.manualRegrade();
     }
 
     public void checkDirectoryStructure() throws IOException {
@@ -233,7 +236,9 @@ public class Grader {
         //////////////////////// Main program /////////////////////////
         // start the process
 //        String runCommand = javaCommand +studentJavaFile.getAbsolutePath();
-        for(RequiredInputOutput requirement: runRequirements){
+        for (int i = 0; i < runRequirements.size(); i++) {
+            RequiredInputOutput requirement = runRequirements.get(i);
+            reporter.divider("New input set");
             ProcessBuilder builder2 = new ProcessBuilder("java", parseClassName(currentFile));
             builder2.directory(tempPathFile);
             builder2.redirectErrorStream(true);
@@ -272,7 +277,7 @@ public class Grader {
             reporter.mark("fatal");
             manualGrade.add(currentFile);
         }else{
-            reporter.mark("regrade");
+            reporter.mark(""+mistakes);
         }
     }
 
@@ -314,32 +319,51 @@ public class Grader {
         // one unit is defined by one requiredInputOutput object
         // this function does not handle any exception. it rethrows them.
         int unitMistakes=0;
-        // first input into the program
+        ArrayList<Integer> inputMarkers= new ArrayList<>();
+        // first read what the program has to say
+        // read what comes out
+        String line;
+        BufferedReader stdout = new BufferedReader(new InputStreamReader(pro.getInputStream()));
+        ArrayList<String> outputs = new ArrayList<>();
+        //        reporter.divider("stdout");
+//        try {
+//            if(stdout.ready()){
+//                while ((line = stdout.readLine()) != null) {
+//                    reporter.writeln(line);
+//                    outputs.add(line);
+//                }
+//                pro.waitFor();
+//            }
+//        } catch (IOException e) {
+//            reporter.reportException(e, "Grader cannot access stdout of the student program.");
+//            e.printStackTrace();
+//            throw e;
+//        }
+//        inputMarkers.add(outputs.size());
+
+        // input into the program
         reporter.divider("stdin");
         OutputStream stdin = pro.getOutputStream();
         if (requirement.customInputs!=null){
-            requirement.injectCustomInput(stdin, reporter);
+            requirement.injectCustomInput(pro, stdin, stdout, reporter, outputs, inputMarkers);
         }
         pro.waitFor();
 
         // read what comes out
         reporter.divider("stdout");
-        String line;
-        BufferedReader in = new BufferedReader(new InputStreamReader(pro.getInputStream()));
         pro.waitFor();
-        ArrayList<String> outputs = new ArrayList<>();
         try {
-            while ((line = in.readLine()) != null) {
+            while ((line = stdout.readLine()) != null) {
                 reporter.writeln(line);
                 outputs.add(line);
             }
             // grade what comes out
             if (requirement.judgment!=null){
-                unitMistakes+=requirement.judge(outputs, reporter);
+                unitMistakes+=requirement.judge(outputs, inputMarkers, reporter);
             }
             pro.waitFor();
             stdin.close();
-            in.close();
+            stdout.close();
         } catch (IOException e) {
             reporter.reportException(e, "Grader cannot access streams of the student program.");
             e.printStackTrace();
@@ -349,16 +373,54 @@ public class Grader {
         return unitMistakes;
     }
 
+    public void miniRegrade(String original){
+        // very manual, no automation
+        // compile and run business.
+
+        File originalFile = new File(original);
+        // compilation
+        try {
+            File tempFile = copySubmissionTemp(originalFile);
+            // compile again
+            ProcessBuilder builder = new ProcessBuilder("javac", tempFile.getAbsolutePath());
+            builder.redirectErrorStream(true);
+            Process compilation = null;
+            compilation = builder.start();
+            compilation.waitFor();
+            compilation.destroy();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+        //
+        try {
+            ProcessBuilder builder2 = new ProcessBuilder("java", parseClassName(originalFile));
+            System.out.println("Running program");
+            builder2.directory(tempPathFile);
+            builder2.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+            builder2.redirectError(ProcessBuilder.Redirect.INHERIT);
+            builder2.redirectInput(ProcessBuilder.Redirect.INHERIT);
+            Process p = builder2.start();
+            p.waitFor();
+            p.destroy();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void startManualRegrade() {
+        // load the students that need to be regraded
         ArrayList<File> manualGrade = null;
         try {
             ObjectInputStream in = null;
-            in = new ObjectInputStream(new FileInputStream("manualGrade.arrayList"));
-            manualGrade=(ArrayList<File>) in.readObject();
-            in.close();
-            if (manualGrade.size()==0){
-                System.out.println("Empty manual grade loaded. Abort. No changes made");
-                System.exit(-99);
+            try {
+                in = new ObjectInputStream(new FileInputStream("manualGrade.arrayList"));
+                manualGrade=(ArrayList<File>) in.readObject();
+                in.close();
+                if (manualGrade.size()==0){
+                    System.out.println("Empty manual grade loaded. Abort. No changes made");
+                    System.exit(-99);
+                }
+            } catch (FileNotFoundException ignored){
             }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
@@ -368,68 +430,117 @@ public class Grader {
 
         Reporter reporter = new Reporter("regrade_log", reportPathFile, true);
         for (int i = 0; i < manualGrade.size(); i++) {
-            File originalFile = manualGrade.get(i);
-            String studentID = parseStudentID(originalFile);
-            reporter.write(studentID);
-            reporter.write(originalFile.getName());
+            boolean done=false;
+            while (!done){
+                File originalFile = manualGrade.get(i);
+                String studentID = parseStudentID(originalFile);
+                reporter.write(studentID);
+                reporter.write(originalFile.getName());
 
-            // compilation
-            try {
-                File tempFile = copySubmissionTemp(originalFile);
-                // compile again
-                ProcessBuilder builder = new ProcessBuilder("javac", tempFile.getAbsolutePath());
-                builder.redirectErrorStream(true);
-                Process compilation = null;
-                compilation = builder.start();
-                compilation.waitFor();
-                compilation.destroy();
-            } catch (IOException | InterruptedException e) {
-                reporter.reportException(e, "Grader cannot compile.");
-                e.printStackTrace();
-            }
-            cont(stdin, manualGrade, i);
+                // compilation
+                try {
+                    File tempFile = copySubmissionTemp(originalFile);
+                    // compile again
+                    ProcessBuilder builder = new ProcessBuilder("javac", tempFile.getAbsolutePath());
+                    builder.redirectErrorStream(true);
+                    Process compilation = null;
+                    compilation = builder.start();
+                    compilation.waitFor();
+                    compilation.destroy();
+                } catch (IOException | InterruptedException e) {
+                    reporter.reportException(e, "Grader cannot compile.");
+                    e.printStackTrace();
+                }
 
-            // run
-            try {
-                ProcessBuilder builder2 = new ProcessBuilder("java", parseClassName(originalFile));
-                System.out.println("Running program");
-                builder2.directory(tempPathFile);
-                builder2.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-                builder2.redirectError(ProcessBuilder.Redirect.INHERIT);
-                builder2.redirectInput(ProcessBuilder.Redirect.INHERIT);
-                Process p = builder2.start();
-                p.waitFor();
-                p.destroy();
-            } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
+                // run
+                try {
+                    ProcessBuilder builder2 = new ProcessBuilder("java", parseClassName(originalFile));
+                    System.out.println("Running program");
+                    builder2.directory(tempPathFile);
+                    builder2.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                    builder2.redirectError(ProcessBuilder.Redirect.INHERIT);
+                    builder2.redirectInput(ProcessBuilder.Redirect.INHERIT);
+                    Process p = builder2.start();
+                    p.waitFor();
+                    p.destroy();
+                } catch (IOException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                // what do I do next?
+                boolean ask=true;
+                while (ask){
+                    System.out.println("Code? [c] Next? [n] Another run? [r] ");
+                    String ret=stdin.next().toLowerCase();
+                    if (ret.toLowerCase().equals("n")) {
+                        try {
+                            ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("manualGrade.arrayList"));
+                            out.writeObject(new ArrayList<File>((manualGrade.subList(i + 1, manualGrade.size()))));
+                            out.flush();
+                            out.close();
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        ask=false;
+                        done=true;
+                    }
+                    if (ret.toLowerCase().equals("c")) {
+                        try {
+                            BufferedReader br = new BufferedReader(new FileReader(originalFile));
+                            String line = null;
+                            while ((line = br.readLine()) != null) {
+                                System.out.println(line);
+                            }
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        ask=true;
+                    }
+                    if (ret.toLowerCase().equals("r")) {
+                        try {
+                            ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("manualGrade.arrayList"));
+                            out.writeObject(new ArrayList<File>(manualGrade.subList(i + 1, manualGrade.size())));
+                            out.flush();
+                            out.close();
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        ask=false;
+                        done=false;
+                    }
+                }
             }
-            cont(stdin, manualGrade, i);
         }
     }
 
-    private void cont(Scanner stdin, ArrayList<File> manualGrade, int index){
-        System.out.println("Code? [c] Next? [n] Another run? [r] ");
-        String ret=stdin.next().toLowerCase();
-        if (!ret.equals("c")){
-            try {
-                ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("manualGrade.arrayList"));
-                out.writeObject(manualGrade);
-                out.flush();
-                out.close();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
     private File copySubmissionTemp(File toBeCopied) throws IOException {
+        // strips away package statement automatically
         // because there is only one file to be graded
         // so it returns, otherwise I don't know
-        File copyTo = new File(tempPathFile, parseClassName(toBeCopied) + ".java");
-        FileUtils.copyFile(toBeCopied, copyTo);
-        return copyTo;
+        BufferedReader read = new BufferedReader( new FileReader( toBeCopied));
+        File tempfile = new File(tempPathFile,parseClassName(toBeCopied) + ".java");
+        BufferedWriter write = new BufferedWriter( new FileWriter( tempfile));
+        String line;
+        while ((line=read.readLine())!=null){
+            int robustCounter=0;
+            if (!line.contains("package") && robustCounter<5){
+                write.write(line+"\n");
+                robustCounter++;
+            }
+        }
+//        File copyTo = new File(tempPathFile, parseClassName(toBeCopied) + ".java");
+//        FileUtils.copyFile(toBeCopied, copyTo);
+        write.flush();
+        write.close();
+        read.close();
+        return tempfile;
     }
 
     private String parseStudentID(File javaFile) {

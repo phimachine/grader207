@@ -30,29 +30,14 @@ public class Reporter {
     }
 
     public void divider(String message) {
-        int leftLength = excaLength - message.length() / 2;
-        int rightLength = excaLength - (message.length() - message.length() / 2);
-
-        String line = "Grader" + "#".repeat(leftLength) +"    "+ message +"    "+ "#".repeat(rightLength) + "Grader\n";
-
-        try {
-            reportWriter.write(line);
-            reportWriter.flush();
-            if (verbose){
-                System.out.println(line);
-            }
-        } catch (IOException e) {
-            System.out.println("Report writer cannot write. Grader's fault.");
-            e.printStackTrace();
-            System.exit(-88);
-        }
+        divider(message, "#");
     }
 
     public void divider(String message, String marker) {
         int leftLength = excaLength - message.length() / 2;
         int rightLength = excaLength - (message.length() - message.length() / 2);
 
-        String line = "Grader" + marker.repeat(leftLength) + message +marker.repeat(rightLength) + "Grader\n";
+        String line = "Grader" + marker.repeat(leftLength) +"    "+ message +"    "+marker.repeat(rightLength) + "Grader\n";
 
         try {
             reportWriter.write(line);
