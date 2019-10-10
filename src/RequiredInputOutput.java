@@ -1,26 +1,22 @@
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 
 public class RequiredInputOutput {
     // this object has a one-to-one correspondence with a process
     // so two of these for one file, one for compilation and one for runtime
 
-    Reporter reporter;
-    Process process;
-    ArrayList<String> customInputs;
+    final ArrayList<String> customInputs;
+    final Method judgment;
 
-    public RequiredInputOutput(Reporter reporter, Process process) {
-        this.reporter = reporter;
+    public RequiredInputOutput(ArrayList<String> customInputs) {
+        this(customInputs, null);
     }
 
-
-    public void gradeStderr(InputStream stderr) throws IOException {
-        String line = null;
-        BufferedReader in = new BufferedReader(new InputStreamReader(stderr));
-        while ((line = in.readLine()) != null) {
-            System.out.println(line);
-            reportWriter.write(printprepend + " " + line + "\n");
-        }
+    public RequiredInputOutput(ArrayList<String> customInputs, Method judgment) {
+        this.customInputs=customInputs;
+        this.judgment=judgment;
     }
 
     public void injectCustomInput(OutputStream stream, Reporter reporter) {
@@ -31,8 +27,11 @@ public class RequiredInputOutput {
                     writer.write(input);
                     reporter.write(input);
                 }
-                writer.flush();
-                writer.close();
+                try {
+                    writer.close();
+                } catch (IOException e){
+                    reporter.divider("Program closed itself");
+                }
             }
         } catch (IOException e) {
             System.out.println("Report writer cannot write. Grader's fault.");
@@ -41,18 +40,31 @@ public class RequiredInputOutput {
         }
     }
 
-    public void judge(ArrayList<String> outputs, Reporter currentReporter) {
+    public int judge(ArrayList<String> outputs, Reporter currentReporter) {
+        try{
+            int mistakes=(int) judgment.invoke(GradingInterface.class, outputs);
+            if (mistakes!=0){
+                System.out.println("here");
+            }
+            currentReporter.divider("MISTAKES",""+mistakes);
+            return mistakes;
+        } catch (IllegalAccessException e) {
+            currentReporter.reportException(e, "Grader's judgment function experienced error");
+            return 999;
+        } catch (InvocationTargetException e) {
+            currentReporter.reportException(e, "Grader's judgment function experienced error");
+            return 999;
+        }
     }
-    
-    public void setCustomInputs(ArrayList<String> customInputs) {
-        this.customInputs = customInputs;
+
+
+    public void print() {
+        System.out.println("Custom inputs");
+        for(String input: customInputs){
+            System.out.println(input);
+        }
     }
 }
 
-public class Inputs {
 
-}
 
-public class Judgment {
-
-}
