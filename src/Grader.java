@@ -560,7 +560,7 @@ public class Grader {
     }
 
     private String parseStudentID(File javaFile) {
-        // anapusrujana_53652_8944872_Operations.java
+        // absdcsd_53652_8944872_Operations.java
         String fname = javaFile.getName();
         String[] parts = fname.split("_");
         String studentID = parts[0];
@@ -568,11 +568,13 @@ public class Grader {
         return studentID;
     }
 
-    private String parseClassName(File file) {
-        // anapusrujana_53652_8944872_Operations.java
+    public static String parseClassName(File file) {
+        // abcddd_53652_8944872_Operations.java
         String fname = file.getName();
         String[] parts = fname.split("_");
         String className = parts[parts.length - 1].split("\\.")[0];
+        className=className.split("-")[0];
+        className=className.split("\\(")[0];
         return className;
     }
 
