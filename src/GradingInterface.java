@@ -41,11 +41,11 @@ public class GradingInterface {
         grader.addRunRequirement(rio3);
 
         ArrayList<String> inputs4 = new ArrayList<>();
-        inputs3.add("-2\n");
-        inputs3.add("3\n");
-        inputs3.add("-1000\n");
-        RequiredInputOutput rio4 = new RequiredInputOutput(inputs3, getMethod("judgment4"));
-        grader.addRunRequirement(rio3);
+        inputs4.add("-2\n");
+        inputs4.add("3\n");
+        inputs4.add("-1000\n");
+        RequiredInputOutput rio4 = new RequiredInputOutput(inputs4, getMethod("judgment4"));
+        grader.addRunRequirement(rio4);
 
         grader.startGrading();
     }
