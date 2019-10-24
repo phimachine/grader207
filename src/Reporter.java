@@ -72,10 +72,22 @@ public class Reporter {
         }
     }
 
-    public void reportException(Exception e, String graderMessage) {
-        System.out.println(graderMessage);
+    public void reportException(Exception e, String graderMessage, boolean silent) {
+        if(!silent){
+            System.out.println(graderMessage);
+            e.printStackTrace();
+        }
         writeln(graderMessage);
-        e.printStackTrace();
+        writeln(ExceptionUtils.getStackTrace(e));
+    }
+
+    public void reportException(Exception e, String graderMessage) {
+        boolean silent=false;
+        if(!silent){
+            System.out.println(graderMessage);
+            e.printStackTrace();
+        }
+        writeln(graderMessage);
         writeln(ExceptionUtils.getStackTrace(e));
     }
 
