@@ -13,6 +13,7 @@ public class RequiredInputOutput {
     final ArrayList<String> customInputs;
     final Judge judge;
     final Interactor interactor;
+    final boolean interactive;
 
     public RequiredInputOutput(ArrayList<String> customInputs) {
         this(customInputs, null);
@@ -26,6 +27,7 @@ public class RequiredInputOutput {
         this.customInputs = customInputs;
         this.judge = judge;
         this.interactor = interactor;
+        this.interactive=customInputs==null? true: false;
     }
 
 //    public String timeOutRead(Process pro, Reporter reporter, ArrayList<String> outputs, BufferedReader stdout){
@@ -57,16 +59,15 @@ public class RequiredInputOutput {
             ret = tr.read(scan);
             line=ret[0];
             eof=ret[1];
-            reporter.writeln(line);
-            outputs.add(line);
+//            reporter.writeln(line);
+//            outputs.add(line);
 
             try {
                 while (line != null && !(eof.equals("true"))) {
-
                     String inject = interactor.interact(line);
-                    System.out.println(inject);
                     if (inject != null) {
                         stdinWriter.write(inject);
+                        reporter.write(inject);
                         inputMarkers.add(outputs.size());
                         // gotta remember to flush all buffered writer
                         try {
@@ -142,7 +143,11 @@ public class RequiredInputOutput {
         // outputs are just outputs
         // inputMarkers, for example, [1,4,6] means there are one output before the first input, 4 outputs before the second...
         int mistakes = 0;
-        mistakes = judge.judgment(customInputs, outputs, inputMarkers, currentReporter);
+        try {
+            mistakes = judge.judgment(customInputs, outputs, inputMarkers, currentReporter);
+        } catch (StudentFatalMistake studentFatalMistake) {
+            mistakes=999;
+        }
         return mistakes;
     }
 
@@ -151,6 +156,12 @@ public class RequiredInputOutput {
         System.out.println("Custom inputs");
         for (String input : customInputs) {
             System.out.println(input);
+        }
+    }
+
+    public void prepare(File tempPathFile) throws IOException {
+        if (interactive){
+            interactor.prepare(tempPathFile);
         }
     }
 }
