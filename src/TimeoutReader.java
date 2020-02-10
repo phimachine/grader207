@@ -76,6 +76,7 @@ class TimeoutReader{
                     ret[1]="true";
                     future.cancel(true);
                     executor.shutdown();
+                    readTask.resetLast();
                     return ret;
                 }
                 // this happens when the reader reads before the student program returns a result
@@ -119,5 +120,9 @@ class ReadTask implements Callable<String>{
 
     public String getLast(){
         return last;
+    }
+
+    public void resetLast(){
+        last="";
     }
 }

@@ -62,8 +62,12 @@ public class RequiredInputOutput {
 //            reporter.writeln(line);
 //            outputs.add(line);
 
+
             try {
-                while (line != null && !(eof.equals("true"))) {
+//                Thread.sleep(100);
+                while (line != null || !(eof.equals("true"))) {
+                    reporter.writeln(line);
+                    outputs.add(line);
                     String inject = interactor.interact(line);
                     if (inject != null) {
                         stdinWriter.write(inject);
@@ -81,12 +85,15 @@ public class RequiredInputOutput {
                     }
                     // wait for the student program to compute.
                     // if reader reads first, we will have problem.
-                    Thread.sleep(100);
-                    ret = tr.read(scan);
-                    line = ret[0];
-                    eof = ret[1];
-                    reporter.writeln(line);
-                    outputs.add(line);
+
+                    if (eof.equals("true")){
+                        break;
+                    }else{
+                        Thread.sleep(100);
+                        ret = tr.read(scan);
+                        line = ret[0];
+                        eof = ret[1];
+                    }
                 }
             } catch (IOException e) {
                 reporter.reportException(e, "Grader cannot access stdout of the student program.");
