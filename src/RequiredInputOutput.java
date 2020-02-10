@@ -66,7 +66,7 @@ public class RequiredInputOutput {
             try {
 //                Thread.sleep(100);
                 while (line != null || !(eof.equals("true"))) {
-                    reporter.writeln(line);
+                    reporter.write(line);
                     outputs.add(line);
                     String inject = interactor.interact(line);
                     if (inject != null) {

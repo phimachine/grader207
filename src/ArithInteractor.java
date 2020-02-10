@@ -7,9 +7,13 @@ import java.util.*;
 
 public class ArithInteractor implements Interactor, Judge {
     Random random = new Random();
+    int max=100;
+    int[] ints = new int[5];
 
     public ArithInteractor(){
-
+        for (int i = 0; i < ints.length; i++) {
+            ints[i]=random.nextInt(max);
+        }
     }
 
 
@@ -18,7 +22,11 @@ public class ArithInteractor implements Interactor, Judge {
         currentOutput = currentOutput.toLowerCase();
         String input = null;
         if (currentOutput.contains("enter")){
-            input ="1 1 2 3 5\n";
+            input="";
+            for (int i = 0; i <ints.length; i++) {
+                input += ints[i]+" ";
+            }
+            input+="\n";
         }
         return input;
     }
@@ -30,10 +38,66 @@ public class ArithInteractor implements Interactor, Judge {
 
     @Override
     public int judgment(ArrayList<String> customInputs, ArrayList<String> outputs, ArrayList<Integer> inputMarkers, Reporter reporter) throws StudentFatalMistake {
+        int mistakes=3;
+        double[] corrects= correctAnswer();
+        double sum=corrects[0];
+        double prod=corrects[1];
+        double average = corrects[2];
+
+        ArrayList<String> lines=new ArrayList<>();
+
         for (String output :
                 outputs) {
-            System.out.println(output);
+            String[] splitted = output.split("\n");
+            for (int i = 0; i < splitted.length; i++) {
+                lines.add(splitted[i]);
+            }
         }
-        return 0;
+
+        for (String line :
+                lines) {
+            String[] words= line.split("\\s");
+            double num;
+            for (String word :
+                    words) {
+                try {
+                    num=Double.parseDouble(word);
+                    if (line.contains("sum")){
+                        if (num==sum){
+                            mistakes-=1;
+                        }
+                    }else if (line.contains("average")){
+                        if (num==average){
+                            mistakes-=1;
+                        }
+
+                    }else if (line.contains("product")){
+                        if (num==prod){
+                            mistakes-=1;
+                        }
+                    }
+
+                }catch(NumberFormatException e){
+                    ;
+                }
+            }
+
+        }
+        reporter.divider("correct sum: "+sum);
+        reporter.divider("correct product: "+sum);
+        reporter.divider("correct average: "+sum);
+
+
+        return mistakes;
+    }
+
+    public double[] correctAnswer(){
+        int sum=0;
+        int product=1;
+        for (int i = 0; i < ints.length; i++) {
+            sum+=ints[i];
+            product*=ints[i];
+        }
+        return new double[]{sum, product, sum / 5.0};
     }
 }

@@ -58,12 +58,12 @@ class TimeoutReader{
         String ret[]=new String[2];
         executor  = Executors.newFixedThreadPool(2);
         if (readTask.getLast()!=null){
-            readString+=(readTask.getLast()+" ");
+            readString+=(readTask.getLast()+"\n");
         }
         while (readString != null) {
             Future<String> future = executor.submit(readTask);
             try {
-                readString = readString+future.get(timeout, TimeUnit.MILLISECONDS)+" ";
+                readString = readString+future.get(timeout, TimeUnit.MILLISECONDS)+"\n";
             } catch (InterruptedException e) {
                 future.cancel(true);
                 executor.shutdown();
@@ -113,7 +113,7 @@ class ReadTask implements Callable<String>{
     }
 
     public synchronized String call(){
-        String ret=scan.next();
+        String ret=scan.nextLine();
         last=ret;
         return ret;
     }
