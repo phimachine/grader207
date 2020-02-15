@@ -40,9 +40,9 @@ public class Reporter {
         String line = "Grader" + marker.repeat(leftLength) +"    "+ message +"    "+marker.repeat(rightLength) + "Grader";
 
         writeln(line);
-        if (verbose){
-            System.out.println(line);
-        }
+//        if (verbose){
+//            System.out.println(line);
+//        }
     }
     public void writeln(String line) {
         write(line+"\n");

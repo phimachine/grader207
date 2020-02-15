@@ -56,6 +56,7 @@ public class ArithInteractor implements Interactor, Judge {
 
         for (String line :
                 lines) {
+            line=line.toLowerCase();
             String[] words= line.split("\\s");
             double num;
             for (String word :
@@ -65,15 +66,20 @@ public class ArithInteractor implements Interactor, Judge {
                     if (line.contains("sum")){
                         if (num==sum){
                             mistakes-=1;
+                        }else{
+                            System.out.println("Stop here");
                         }
                     }else if (line.contains("average")){
                         if (num==average){
                             mistakes-=1;
+                        }else{
+                            System.out.println("Stop here");
                         }
-
                     }else if (line.contains("product")){
                         if (num==prod){
                             mistakes-=1;
+                        }else {
+                            System.out.println("Stop here");
                         }
                     }
 
@@ -84,8 +90,8 @@ public class ArithInteractor implements Interactor, Judge {
 
         }
         reporter.divider("correct sum: "+sum);
-        reporter.divider("correct product: "+sum);
-        reporter.divider("correct average: "+sum);
+        reporter.divider("correct product: "+prod);
+        reporter.divider("correct average: "+average);
 
 
         return mistakes;

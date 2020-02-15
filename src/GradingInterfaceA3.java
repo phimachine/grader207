@@ -1,20 +1,18 @@
 import java.io.IOException;
 
-public class GradingInterfaceA2 {
-    private static int testers=10;
+public class GradingInterfaceA3 {
+    private static int testers=20;
 
     public static void main(String[] args) throws IOException {
-        GradingInterfaceA2.gradeManually();
+        GradingInterfaceA3.autoGrade();
     }
 
     public static void autoGrade() {
         Grader grader = new Grader(true, true);
-        grader.startFrom("idrismuhammadnabilarif");
-
 
         for (int i = 0; i < testers; i++) {
-            ArithInteractor fi= new ArithInteractor();
-            RequiredInputOutput rio = new RequiredInputOutput(null, fi, fi);
+            LeapYearInteractor li= new LeapYearInteractor(i%4);
+            RequiredInputOutput rio = new RequiredInputOutput(null, li, li);
             grader.addRunRequirement(rio);
         }
 
@@ -24,7 +22,6 @@ public class GradingInterfaceA2 {
     public static void gradeManually() {
         // this grades the files that are not autograded.
         Grader grader = new Grader();
-        grader.startFrom("chenyiren");
         grader.startManualRegrade();
     }
 

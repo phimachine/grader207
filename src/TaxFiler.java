@@ -1,9 +1,6 @@
 import java.io.*;
-import java.lang.reflect.Method;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.Stream;
 
 public class TaxFiler implements Interactor, Judge {
 
@@ -152,9 +149,9 @@ public class TaxFiler implements Interactor, Judge {
     public TaxReport getExpectedReport() {
         TaxReport tr;
         if (single) {
-            tr = TaxReturn.computeTax(single, singleIncome, 0, 0, dependents);
+            tr = TaxReturn2.computeTax(single, singleIncome, 0, 0, dependents);
         } else {
-            tr = TaxReturn.computeTax(single, 0, myIncome, spouseIncome, dependents);
+            tr = TaxReturn2.computeTax(single, 0, myIncome, spouseIncome, dependents);
         }
         return tr;
     }
