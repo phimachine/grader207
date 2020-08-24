@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.util.Scanner;
 
 public class GradingInterfaceA3 {
     private static int testers=20;
@@ -9,7 +10,7 @@ public class GradingInterfaceA3 {
 
     public static void autoGrade() {
         Grader grader = new Grader(true, true);
-
+        grader.startFrom("bertramjackson");
         for (int i = 0; i < testers; i++) {
             LeapYearInteractor li= new LeapYearInteractor(i%4);
             RequiredInputOutput rio = new RequiredInputOutput(null, li, li);
@@ -17,6 +18,17 @@ public class GradingInterfaceA3 {
         }
 
         grader.startGrading();
+
+        String status;
+        Scanner scan = new Scanner(System.in);
+        status=scan.next();
+        if (!status.equals("single") && !status.equals("married")){
+            System.out.println("Invalid input");
+            return;
+        }
+
+        // if this line is reachable, then status has to be single or married
+        System.out.println(status);
     }
 
     public static void gradeManually() {

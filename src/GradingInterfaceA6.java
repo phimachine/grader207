@@ -1,20 +1,30 @@
 import java.io.IOException;
 
-public class GradingInterfaceWS9 {
+public class GradingInterfaceA6 {
+    // valid email grader
 
     public static void main(String[] args) throws IOException {
-        GradingInterfaceWS9.exampleAutoGrade();
+        GradingInterfaceA6.exampleAutoGrade();
+//        GradingInterfaceA5.gradeManually();
     }
 
     public static void exampleAutoGrade() {
         // an example of how to use the grader program
         Grader grader = new Grader(true, true);
-//        grader.startFrom("anapusrujana");
-        addGrading(grader,false);
-        addGrading(grader, false);
-        addGrading(grader, false);
-        addGrading(grader, true);
-        addGrading(grader, true);
+        grader.startFrom("rileydaniel" );
+        grader.cnt=1;
+        addGrading(grader);
+        addGrading(grader);
+        addGrading(grader);
+        addGrading(grader);
+        addGrading(grader);
+        addGrading(grader);
+        addGrading(grader);
+        addGrading(grader);
+        addGrading(grader);
+        addGrading(grader);
+
+
         grader.startGrading();
     }
 
@@ -22,7 +32,7 @@ public class GradingInterfaceWS9 {
     public static void gradeManually() {
         // this grades the files that are not autograded.
         Grader grader = new Grader();
-        grader.startFrom("willmanryan");
+        grader.startFrom("idrismuhammad");
         grader.startManualRegrade();
     }
 
@@ -31,8 +41,8 @@ public class GradingInterfaceWS9 {
         grader.startManualRegrade();
     }
 
-    public static void addGrading(Grader grader, boolean jibberish){
-        OldArrayGrader ag= new OldArrayGrader(jibberish);
+    public static void addGrading(Grader grader) {
+        NewArrayGrader ag = new NewArrayGrader();
         RequiredInputOutput rio = new RequiredInputOutput(null, ag, ag);
         grader.addRunRequirement(rio);
     }

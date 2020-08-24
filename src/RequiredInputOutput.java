@@ -1,10 +1,8 @@
-import java.io.*;
-import java.lang.reflect.Array;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Scanner;
-import java.util.concurrent.TimeoutException;
 
 public class RequiredInputOutput {
     // this object has a one-to-one correspondence with a process
@@ -27,7 +25,7 @@ public class RequiredInputOutput {
         this.customInputs = customInputs;
         this.judge = judge;
         this.interactor = interactor;
-        this.interactive=customInputs==null? true: false;
+        this.interactive = customInputs == null ? true : false;
     }
 
 //    public String timeOutRead(Process pro, Reporter reporter, ArrayList<String> outputs, BufferedReader stdout){
@@ -45,52 +43,55 @@ public class RequiredInputOutput {
 //        outputs.add(line);
 //    }
 
-    public void interactiveInject(Process pro, OutputStream stdin, BufferedReader stdout, Reporter reporter,
+    public void interactiveInject(Process pro, BufferedReader reader, BufferedWriter writer, Reporter reporter,
                                   ArrayList<String> outputs, ArrayList<Integer> inputMarkers) throws StudentFatalMistake {
         try {
-            BufferedWriter stdinWriter = new BufferedWriter(new OutputStreamWriter(stdin));
 
             String line;
             String eof;
             String ret[];
-            TimeoutReader tr=new TimeoutReader();
-            InputStream is=pro.getInputStream();
-            Scanner scan =  new Scanner(is);
-            ret = tr.read(scan);
-            line=ret[0];
-            eof=ret[1];
+            TimeoutReader tr = new TimeoutReader();
+//            Scanner scan =  new Scanner(reader);
+            ret = tr.readUntilTimeout(reader);
+            line = ret[0];
+            eof = ret[1];
 //            reporter.writeln(line);
 //            outputs.add(line);
-
-
             try {
 //                Thread.sleep(100);
                 while (line != null || !(eof.equals("true"))) {
-                    reporter.write(line);
+                    if (line.equals("") || line.charAt(line.length()-1)=='\n'){
+                        reporter.write(line);
+                    }else{
+                        reporter.writeln(line);
+                    }
                     outputs.add(line);
-                    String inject = interactor.interact(line);
+                    String inject=null;
+                    if (!eof.equals("true")) {
+                        inject = interactor.interact(line);
+                    }
                     if (inject != null) {
-                        stdinWriter.write(inject);
+                        writer.write(inject);
                         reporter.write(inject);
                         inputMarkers.add(outputs.size());
                         // gotta remember to flush all buffered writer
                         try {
-                            stdinWriter.flush();
+                            writer.flush();
                         } catch (IOException e) {
                             reporter.reportException(e, "Student program closes unexpectedly", true);
                             throw new StudentFatalMistake("Student program closes unexpectedly");
                         }
-                    }else{
+                    } else {
                         Thread.sleep(100);
                     }
                     // wait for the student program to compute.
                     // if reader reads first, we will have problem.
 
-                    if (eof.equals("true")){
+                    if (eof.equals("true")) {
                         break;
-                    }else{
+                    } else {
                         Thread.sleep(100);
-                        ret = tr.read(scan);
+                        ret = tr.readUntilTimeout(reader);
                         line = ret[0];
                         eof = ret[1];
                     }
@@ -103,34 +104,33 @@ public class RequiredInputOutput {
                 e.printStackTrace();
             }
             try {
-                stdinWriter.close();
+                writer.close();
             } catch (IOException e) {
                 reporter.divider("Program closed itself");
             }
-        } catch (IOException  e) {
+        } catch (IOException e) {
             System.out.println("Report writer cannot write. Grader's fault.");
             e.printStackTrace();
             System.exit(-88);
         }
     }
 
-    public void injectCustomInput(Process pro, OutputStream stdin, BufferedReader stdout, Reporter reporter,
+    public void injectCustomInput(Process pro, BufferedReader reader, BufferedWriter writer, Reporter reporter,
                                   ArrayList<String> outputs, ArrayList<Integer> inputMarkers) {
         try {
             if (customInputs != null) {
-                BufferedWriter stdinWriter = new BufferedWriter(new OutputStreamWriter(stdin));
                 for (String input : customInputs) {
-                    stdinWriter.write(input);
+                    writer.write(input);
                     inputMarkers.add(outputs.size());
                     reporter.write(input);
                     String line;
-                    while ((line = stdout.readLine()) != null) {
+                    while ((line = reader.readLine()) != null) {
                         reporter.writeln(line);
                         outputs.add(line);
                     }
                 }
                 try {
-                    stdinWriter.close();
+                    writer.close();
                 } catch (IOException e) {
                     reporter.divider("Program closed itself");
                 }
@@ -153,7 +153,7 @@ public class RequiredInputOutput {
         try {
             mistakes = judge.judgment(customInputs, outputs, inputMarkers, currentReporter);
         } catch (StudentFatalMistake studentFatalMistake) {
-            mistakes=999;
+            mistakes = 999;
         }
         return mistakes;
     }
@@ -167,7 +167,7 @@ public class RequiredInputOutput {
     }
 
     public void prepare(File tempPathFile) throws IOException {
-        if (interactive){
+        if (interactive) {
             interactor.prepare(tempPathFile);
         }
     }

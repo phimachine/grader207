@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.ArrayList;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 import org.apache.commons.io.FileUtils;
@@ -16,7 +17,7 @@ public class Grader {
     private File reportPathFile;
     private String requireClassName;
     private boolean verbose;
-    private boolean interactive;
+    private boolean interactive=true;
     ArrayList<File> javaFiles;
     //    private File currentFile;
 //    Reporter reporter;
@@ -121,6 +122,7 @@ public class Grader {
         }
     }
 
+
     public void addCompilationRequirement(RequiredInputOutput rio) {
         compilationRequirements.add(rio);
     }
@@ -156,14 +158,19 @@ public class Grader {
                 gradeStudent(file);
             }
         }
-        System.out.println("Auto grading finished finished");
+        System.out.println("Auto grading finished");
     }
 
     public void startFrom(String studentID){
         this.startFromStudentID =studentID;
     }
 
-    private void gradeStudent(File currentFile) {
+    public void setGradeHowMany(int remaining){
+        this.cnt=remaining;
+    }
+
+
+    private void gradeStudent(File currentFile)  {
         File tempFile = null;
         int mistakes = 0;
 
@@ -207,18 +214,9 @@ public class Grader {
         }
         try {
             gradeCompilation(compilation, reporter);
-
-        } catch (IOException e) {
-            mistakes = 999;
-            reporter.write("Student " + studentID + " has IO exception. Need regrading");
-            e.printStackTrace();
         } catch (InterruptedException e) {
             mistakes = 999;
             reporter.write("Student " + studentID + " program is interrupted. Why?");
-            e.printStackTrace();
-        }catch (StudentFatalMistake e) {
-            mistakes = 999;
-            reporter.write("Student " + studentID + " program is terminated. ");
             e.printStackTrace();
         }
         compilation.destroy();
@@ -240,26 +238,33 @@ public class Grader {
             ProcessBuilder builder2 = new ProcessBuilder("java", parseClassName(currentFile));
             builder2.directory(tempPathFile);
             builder2.redirectErrorStream(true);
-            Process run = null;
+//            builder2.redirectInput(ProcessBuilder.Redirect.PIPE);
+//            builder2.redirectOutput(ProcessBuilder.Redirect.PIPE);
+
+            Process pro = null;
             try {
-                run = builder2.start();
+                pro = builder2.start();
+                OutputStream stdin = pro.getOutputStream(); // <- Eh?
+                InputStream stdout = pro.getInputStream();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(stdout));
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin));
+
+                mistakes += gradeRun(pro, reader, writer, reporter, requirement);
+                reader.close();
+                writer.close();
+                pro.destroy();
+            }catch (NoSuchElementException e){
+                System.out.println("What is happening?");
             } catch (IOException e) {
                 mistakes = 999;
                 System.out.println("Grader cannot start the process. It might be grader's fault.");
                 e.printStackTrace();
                 System.exit(-42);
-            }
-            // report the output
-            try {
-                mistakes += gradeRun(run, reporter, requirement);
-                run.destroy();
+
             } catch (InterruptedException e) {
                 mistakes = 999;
                 reporter.write("Student " + studentID + " has IO exception. Need regrading");
-                e.printStackTrace();
-            } catch (IOException e) {
-                mistakes = 999;
-                reporter.write("Student " + studentID + " program is interrupted. Why?");
                 e.printStackTrace();
             }catch (StudentFatalMistake e) {
                 mistakes = 999;
@@ -286,30 +291,32 @@ public class Grader {
         }
     }
 
-    private void gradeCompilation(Process compilationProcess, Reporter reporter) throws IOException, InterruptedException, StudentFatalMistake {
+    private void gradeCompilation(Process compilationProcess, Reporter reporter) throws InterruptedException {
         reporter.divider("COMPILATION");
-        try {
-            if (compilationRequirements != null) {
-                for (RequiredInputOutput requirement : compilationRequirements) {
-                    gradeOneUnit(compilationProcess, requirement, reporter);
-                }
-            } else {
-                gradeOneUnit(compilationProcess, null, reporter);
-            }
-            compilationProcess.waitFor();
-        } catch (InterruptedException | IOException e) {
-            reporter.reportException(e, "Student program interrupted");
-            throw e;
-        }
-
+//        try {
+//            if (compilationRequirements != null) {
+//                for (RequiredInputOutput requirement : compilationRequirements) {
+//                    gradeOneUnit(compilationProcess, requirement, reporter);
+//                }
+//            } else {
+//                gradeOneUnit(compilationProcess, null, reporter);
+//            }
+//            compilationProcess.waitFor();
+//        } catch (InterruptedException | IOException e) {
+//            reporter.reportException(e, "Student program interrupted");
+//            throw e;
+//        }
+        compilationProcess.waitFor();
         reporter.divider("Exit value compilation: " + compilationProcess.exitValue());
     }
 
-    private int gradeRun(Process runProcess, Reporter reporter, RequiredInputOutput requirement) throws IOException, InterruptedException, StudentFatalMistake {
+    private int gradeRun(Process runProcess, BufferedReader reader, BufferedWriter writer, Reporter reporter, RequiredInputOutput requirement) throws IOException, InterruptedException, StudentFatalMistake {
         int mistakes = 0;
         if (runRequirements != null) {
             try {
-                mistakes += gradeOneUnit(runProcess, requirement, reporter, interactive);
+                if (interactive){
+                    mistakes += gradeOneUnit(runProcess, reader, writer, requirement, reporter);
+                }
             } catch (InterruptedException | IOException e) {
                 reporter.reportException(e, "Student program interrupted");
                 throw e;
@@ -320,32 +327,33 @@ public class Grader {
         return mistakes;
     }
 
-    public int gradeOneUnit(Process pro, RequiredInputOutput requirement, Reporter reporter) throws InterruptedException, IOException, StudentFatalMistake {
+
+    public int gradeOneUnit(Process pro,  BufferedReader reader, BufferedWriter writer, RequiredInputOutput requirement, Reporter reporter) throws InterruptedException, IOException, StudentFatalMistake {
         // one unit is defined by one requiredInputOutput object
         // this function does not handle any exception. it rethrows them.
         int unitMistakes = 0;
         ArrayList<Integer> inputMarkers = new ArrayList<>();
+
+        // input into the program
         // first read what the program has to say
         // read what comes out
         String line;
-        BufferedReader stdout = new BufferedReader(new InputStreamReader(pro.getInputStream()));
         ArrayList<String> outputs = new ArrayList<>();
 
-        // input into the program
-        OutputStream stdin = pro.getOutputStream();
         if (requirement.customInputs != null) {
             reporter.divider("stdin");
-            requirement.injectCustomInput(pro, stdin, stdout, reporter, outputs, inputMarkers);
+            requirement.injectCustomInput(pro, reader, writer, reporter, outputs, inputMarkers);
             reporter.divider("stdout");
         }else {
-            requirement.interactiveInject(pro, stdin, stdout, reporter, outputs, inputMarkers);
+            requirement.interactiveInject(pro, reader, writer, reporter, outputs, inputMarkers);
         }
         pro.waitFor();
+
 
         // read what comes out
         pro.waitFor();
         try {
-            while ((line = stdout.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
                 reporter.writeln(line);
                 outputs.add(line);
             }
@@ -354,8 +362,6 @@ public class Grader {
                 unitMistakes += requirement.judge(outputs, inputMarkers, reporter);
             }
             pro.waitFor();
-            stdin.close();
-            stdout.close();
         } catch (IOException e) {
             reporter.reportException(e, "Grader cannot access streams of the student program.");
             e.printStackTrace();
@@ -366,9 +372,9 @@ public class Grader {
     }
 
 
-    public int gradeOneUnit(Process pro, RequiredInputOutput requirement, Reporter reporter, boolean interactive) throws InterruptedException, IOException, StudentFatalMistake {
-        if (!interactive) {
-            return gradeOneUnit(pro, requirement, reporter);
+    public int gradeOneUnit(Process pro,  BufferedReader reader, BufferedWriter writer, RequiredInputOutput requirement, Reporter reporter, boolean interactive) throws InterruptedException, IOException, StudentFatalMistake {
+        if (interactive) {
+            return gradeOneUnit(pro,   reader,  writer, requirement, reporter);
         }
         // one unit is defined by one requiredInputOutput object
         // this function does not handle any exception. it rethrows them.
@@ -377,7 +383,6 @@ public class Grader {
         // first read what the program has to say
         // read what comes out
         String line;
-        BufferedReader stdout = new BufferedReader(new InputStreamReader(pro.getInputStream()));
         ArrayList<String> outputs = new ArrayList<>();
 
 //        // input into the program
@@ -388,7 +393,7 @@ public class Grader {
         reporter.divider("stdout");
         pro.waitFor();
         try {
-            while ((line = stdout.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
                 reporter.writeln(line);
                 outputs.add(line);
             }
@@ -397,8 +402,6 @@ public class Grader {
                 unitMistakes += requirement.judge(outputs, inputMarkers, reporter);
             }
             pro.waitFor();
-            stdin.close();
-            stdout.close();
         } catch (IOException e) {
             reporter.reportException(e, "Grader cannot access streams of the student program.");
             e.printStackTrace();
@@ -583,6 +586,7 @@ public class Grader {
         // because there is only one file to be graded
         // so it returns, otherwise I don't know
         BufferedReader read = new BufferedReader(new FileReader(toBeCopied));
+        FileUtils.cleanDirectory(tempPathFile);
         File tempfile = new File(tempPathFile, parseClassName(toBeCopied) + ".java");
         BufferedWriter write = new BufferedWriter(new FileWriter(tempfile));
 

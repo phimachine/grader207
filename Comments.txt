@@ -1,0 +1,12 @@
+Great job! Comment your code for clarity.
+
+You can also use concatenation operator between String and numbers, such as ("total is "+5).
+
+Your average is incorrect. You used integer division rather than double division.
+double avg = (double) sum / 5;
+or
+double avg = sum / 5.0;
+
+Avoid doing computation as you print. Compute first and store the result in a variable, then print the result variable.
+
+Use the program behavior defined in the instruction. Ask the user to enter five integers on the same line.
